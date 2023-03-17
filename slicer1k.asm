@@ -1,10 +1,72 @@
-;defines to make us feel more at home
+;some #defines for compatibility with other assemblers
 #define         DEFB .byte 
 #define         DEFW .word
 #define         EQU  .equ
 #define         ORG  .org
 
-           ORG  $4009             ; compile at this address     
+; character set definition/helpers
+__:				EQU	$00	;spacja
+_QT:			EQU	$0B	;"
+_PD:			EQU	$0C	;funt 
+_SD:			EQU	$0D	;$
+_CL:			EQU	$0E	;:
+_QM:			EQU	$0F	;?
+_OP:			EQU	$10	;(
+_CP:			EQU	$11	;)
+_GT:			EQU	$12	;>
+_LT:			EQU	$13	;<
+_EQ:			EQU	$14	;=
+_PL:			EQU	$15	;+
+_MI:			EQU	$16	;-
+_AS:			EQU	$17	;*
+_SL:			EQU	$18	;/
+_SC:			EQU	$19	;;
+_CM:			EQU	$1A	;,
+_DT:			EQU	$1B	;.
+_NL:			EQU	$76	;NEWLINE
+
+_0				EQU $1C
+_1				EQU $1D
+_2				EQU $1E
+_3				EQU $1F
+_4				EQU $20
+_5				EQU $21
+_6				EQU $22
+_7				EQU $23
+_8				EQU $24
+_9				EQU $25
+_A				EQU $26
+_B				EQU $27
+_C				EQU $28
+_D				EQU $29
+_E				EQU $2A
+_F				EQU $2B
+_G				EQU $2C
+_H				EQU $2D
+_I				EQU $2E
+_J				EQU $2F
+_K				EQU $30
+_L				EQU $31
+_M				EQU $32
+_N				EQU $33
+_O				EQU $34
+_P				EQU $35
+_Q				EQU $36
+_R				EQU $37
+_S				EQU $38
+_T				EQU $39
+_U				EQU $3A
+_V				EQU $3B
+_W				EQU $3C
+_X				EQU $3D
+_Y				EQU $3E
+_Z				EQU $3F
+
+
+;;;; this is the whole ZX81 runtime system and gets assembled and 
+;;;; loads as it would if we dropped into basic
+
+           ORG  $4009             ; assemble to this address
                                                                 
 VERSN:          DEFB 0
 E_PPC:          DEFW 2
@@ -44,31 +106,52 @@ Line1:          DEFB $00,$0a                    ; Line 10
                 DEFW Line1End-Line1Text         ; Line 10 length
 Line1Text:      DEFB $ea                        ; REM
                                                                 
-; from here programmable memory                                 
-                                                                
-start                 
-           LD   DE,D_FILE+1
-           LD   HL, $3F
-           ret
-           LD   BC,6                                           
-           LDIR                   
-           
-           
-;demoloop   LD   B,11              ; length of HELLO WORLD       
-;           LD   HL,D_FILE+1        ; point to text               
-;flash      LD   A,(HL)            ; fetch character             
-;           XOR  128               ; invert character            
-;           LD   (HL),A            ; set back                    
-;           INC  HL                ; next character              
-;           DJNZ flash             ; swap all characters         
-;                                                                
-;           LD   HL,FRAMES         ; fetch timer                 
-;           LD   A,(HL)                                          
-;           SUB  10                ; wait 10 full frames         
-;wait       CP   (HL)                                            
-;           JR   NZ,wait                                         
-;           ret                                                     
-;           JR   demoloop          ; continue                    
+
+	ld bc,2
+	ld de,gameName
+	ld hl,(DF_CC)
+	add hl,bc	
+printstring_loop
+	ld a,(de)
+	cp $ff
+	jp z,printstring_end
+	ld (hl),a
+	inc hl
+	inc de
+	jr printstring_loop
+printstring_end	
+
+gameLoop
+    ; scroll first line of slicer 
+    ld de, 23	
+	ld hl,(DF_CC)
+	add hl,de	
+    ld a, (hl)  ; store the current character that gets wrapped around to right
+    ld (tempChar), a    
+    ld de, 24
+    ld bc,7
+scrollRight    
+    push de
+	ld hl,(DF_CC)
+	add hl,de	
+    ld a, (hl)  ; store the current character to be shifted
+    dec de
+    ld hl,(DF_CC)
+	add hl,de	
+    ld (hl), a
+    pop de    
+    inc de
+    djnz scrollRight
+        
+    ld de, 32
+	ld hl,(DF_CC)
+	add hl,de	
+    ld a, (tempChar)
+    ld (hl),a  ; store the current character that gets wrapped around to right
+
+    jp gameLoop
+    ret          
+                
         
                 DEFB $76                        ; Newline        
 Line1End
@@ -83,35 +166,37 @@ Line2End
 endBasic
                                                                 
 Display        	DEFB $76     
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 0
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 1
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 2
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 3
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 4
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 5
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 6
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 7
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 8
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 9
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 10
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 11
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 12
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 13
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 14
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 15
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 16
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 17
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 18
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 19
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 20
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 21
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 22
-                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$76 ; Line 23
+                DEFB 8,9,0,0,0,0,0,0,9,8,$76 ; Line 0
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 1
+                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 3
+                DEFB 128,128,128,128,0,0,128,128,128,128,$76 ; Line 4
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 5
+                DEFB 0,0,128,128,128,128,128,128,128,128,$76 ; Line 6
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 7
+                DEFB 128,128,128,0,0,128,128,128,128,128,$76 ; Line 8
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 9
+                DEFB $76 ; Line 10
+                DEFB $76 ; Line 11
+                DEFB $76 ; Line 12
+                DEFB $76 ; Line 13
+                DEFB $76 ; Line 14
+                DEFB $76 ; Line 15
+                DEFB $76 ; Line 16
+                DEFB $76 ; Line 17
+                DEFB $76 ; Line 18
+                DEFB $76 ; Line 19
+                DEFB $76 ; Line 20
+                DEFB $76 ; Line 21
+                DEFB $76 ; Line 22
+                DEFB $76 ; Line 23
                                  
                                                                 
 Variables:      
-textToPrint
-    DEFB	"Z"-27,"X"-27,"8"-27,"1"-27,0,"1"-27,"K"-27
+gameName
+	DEFB	_S,_L,_I,_C,_E,_R,$ff
+tempChar
+    DEFB 0
 VariablesEnd:   DEFB $80
 BasicEnd: 
 #END
