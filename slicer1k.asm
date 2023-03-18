@@ -129,20 +129,24 @@ printstring_end
    
 gameLoop
     ; scroll first line of slicer     
-    ld de, 22       ; start of first row to be shifted    
-    ld hl,(DF_CC)
-    add hl,de
-    ld (firstCharFirstRow), hl
-    
-    ld de, 31 
-    ld hl,(DF_CC)
-    add hl,de
-    ld (lastCharFirstRow), hl           
-        
+    ld de, 22       ; start of first row to be shifted left      
+    ld bc, 31       ; end of first row to be shifted left      
     call scrollARowLeft_DE_BC
-    
 
-    ld bc, $1fff
+    ld de, 66       ; start of first row to be shifted left      
+    ld bc, 75       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+
+    ld de, 53       ; start of first row to be shifted left      
+    ld bc, 44       ; end of first row to be shifted left      
+    call scrollARowRight_BC_DE
+
+
+    ld de, 97       ; start of first row to be shifted left      
+    ld bc, 88       ; end of first row to be shifted left      
+    call scrollARowRight_BC_DE    
+    ld bc, $0fff     ; set wait loop delay
+    ;ld bc, $ffff     ; set wait loop delay
 waitloop1
     dec bc
     ld a,b
@@ -154,6 +158,15 @@ waitloop1
 
 scrollARowLeft_DE_BC    ;;; de to contain the display location of first character in row, bc the last
                         ;;; also uses 
+    
+    ld hl,(DF_CC)
+    add hl,de
+    ld (firstCharFirstRow), hl    
+    push bc 
+    pop de
+    ld hl,(DF_CC)
+    add hl,de
+    ld (lastCharFirstRow), hl           
     
     ld hl, (firstCharFirstRow)
     ld a, (hl)  ; store the current character that gets wrapped around to right
@@ -173,7 +186,35 @@ scrollLeft
     ld (hl),a  ; store the current character that gets wrapped around to right
     ret                
     
-scrollARowRight_DE_BC    ;;; de to contain the display location of first character in row, bc the last
+scrollARowRight_BC_DE    ;;; bc to contain the display location of first character in row, de the last
+
+    ld hl,(DF_CC)
+    add hl,de
+    ld (lastCharFirstRow), hl    
+    push bc 
+    pop de
+    ld hl,(DF_CC)
+    add hl,de
+    ld (firstCharFirstRow), hl           
+    
+    ld hl, (lastCharFirstRow)
+    ld a, (hl)  ; store the current character that gets wrapped around to right
+    ld (tempChar), a    
+    ld bc,$0900    
+scrollRight       
+    dec hl
+    push hl
+    ld a, (hl)  ; store the current character to be shifted left
+    inc hl
+    ld (hl), a  ; now store it!
+    pop hl
+    djnz scrollRight
+
+    ld hl, (firstCharFirstRow)
+    ld a, (tempChar)  
+    ld (hl),a  ; store the current character that gets wrapped around to right
+
+
     ret   
                 DEFB $76                        ; Newline        
 Line1End
@@ -190,12 +231,12 @@ endBasic
 Display        	DEFB $76     
                 DEFB 8,9,0,0,0,0,0,0,9,8,$76 ; Line 0
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 1
-                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2
-                ;DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 2  (debug)
+                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 3
                 DEFB 128,128,128,128,0,0,128,128,128,128,$76 ; Line 4
+                ;DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 4  (debug)
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 5
-                DEFB 0,0,128,128,128,128,128,128,128,128,$76 ; Line 6
+                DEFB 128,128,128,128,128,0,0,128,128,128,$76 ; Line 6
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 7
                 DEFB 128,128,128,0,0,128,128,128,128,128,$76 ; Line 8
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 9
