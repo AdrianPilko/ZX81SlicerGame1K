@@ -9,6 +9,17 @@
 #define         EQU  .equ
 #define         ORG  .org
 
+; keyboard port for shift key to v
+#define KEYBOARD_READ_PORT_SHIFT_TO_V $FE
+; keyboard space to b
+#define KEYBOARD_READ_PORT_SPACE_TO_B $7F 
+; starting port numbner for keyboard, is same as first port for shift to v
+#define KEYBOARD_READ_PORT $FE 
+
+#define PLAYER_CHARACTER 8
+#define SPACE_CHARACTER 0
+#define SLICER_CHARACTER 128
+
 ; character set definition/helpers
 __:				EQU	$00	;spacja
 _QT:			EQU	$0B	;"
@@ -126,8 +137,88 @@ printstring_loop
 	jr printstring_loop
 printstring_end	
 
-   
+    ;; some variable initialisation
+    ld hl, (DF_CC)
+    ld de, 11
+    add hl, de
+    ld (playerPosAbsolute), hl
+
+    ld a, PLAYER_CHARACTER
+    ld hl, (playerPosAbsolute)
+    ld (hl), a
+    
 gameLoop
+
+    ;; read keys
+    ld a, KEYBOARD_READ_PORT_SHIFT_TO_V			
+    in a, (KEYBOARD_READ_PORT)					; read from io port	
+    bit 1, a                            ; Z
+    jp z, drawLeft
+
+    ld a, KEYBOARD_READ_PORT_SPACE_TO_B			
+    in a, (KEYBOARD_READ_PORT)					; read from io port		
+    bit 2, a						    ; M
+    jp z, drawRight							    ; jump to move shape right	
+
+    ld a, KEYBOARD_READ_PORT_SPACE_TO_B			
+    in a, (KEYBOARD_READ_PORT)					; read from io port		
+    bit 3, a					        ; N
+    jp z, drawDown
+    
+    jp drawPlayer
+    
+drawLeft    
+    call erasePlayer
+    ld hl, (playerPosAbsolute)
+    dec hl
+    ld (playerPosAbsolute), hl
+    call checkCollision
+    jp drawPlayer    
+drawRight    
+    call erasePlayer
+    ld hl, (playerPosAbsolute)
+    inc hl
+    ld (playerPosAbsolute), hl
+    call checkCollision
+    jp drawPlayer    
+drawDown    
+    call erasePlayer
+    ld hl, (playerPosAbsolute)
+    ld de, 10
+    add hl, de
+    ld (playerPosAbsolute), hl
+    call checkCollision
+    jp drawPlayer    
+
+checkCollision
+    ld hl, (playerPosAbsolute)
+    ld a, (hl)
+    cp SLICER_CHARACTER
+    jp z, hitGameOver
+
+    ld hl, (playerPosAbsolute)  ; now compare with bottom if got there then win
+    scf    ; this sets the caryy flag, if a if >= 99 caryy is reset
+    ld a, h   
+    cp 99
+    jp nc, playerWon
+    ret
+    
+erasePlayer
+    ld a, SPACE_CHARACTER
+    ld hl, (playerPosAbsolute)
+    ld (hl), a
+    ret
+
+drawPlayer
+    ld a, PLAYER_CHARACTER
+    ld hl, (playerPosAbsolute)
+    ld (hl), a
+
+
+    
+    
+scrollEverything    
+
     ; scroll first line of slicer     
     ld de, 22       ; start of first row to be shifted left      
     ld bc, 31       ; end of first row to be shifted left      
@@ -137,16 +228,15 @@ gameLoop
     ld bc, 75       ; end of first row to be shifted left      
     call scrollARowLeft_DE_BC
 
-    ld de, 53       ; start of first row to be shifted left      
-    ld bc, 44       ; end of first row to be shifted left      
+    ld de, 53       ; end of first row to be shifted right      
+    ld bc, 44       ; start of first row to be shifted right      
     call scrollARowRight_BC_DE
-
-
-    ld de, 97       ; start of first row to be shifted left      
-    ld bc, 88       ; end of first row to be shifted left      
+   
+    ld de, 97     ; end of first row to be shifted right     
+    ld bc, 88       ; start of first row to be shifted right   
     call scrollARowRight_BC_DE    
-    ld bc, $0fff     ; set wait loop delay
-    ;ld bc, $ffff     ; set wait loop delay
+    
+    ld bc, $1fff     ; set wait loop delay
 waitloop1
     dec bc
     ld a,b
@@ -156,6 +246,41 @@ waitloop1
     jp gameLoop
     ret          
 
+hitGameOver
+    ld a, PLAYER_CHARACTER      ; draw player one last time
+    ld hl, (playerPosAbsolute)
+    ld (hl), a
+    ret
+    
+playerWon    
+    ld a, PLAYER_CHARACTER      ; draw player one last time
+    ld hl, (playerPosAbsolute)
+    ld (hl), a
+
+	ld bc,56
+	ld de,youWonText
+	ld hl,(DF_CC)
+	add hl,bc	
+printstring_loopWon
+	ld a,(de)
+	cp $ff
+	jp z,printstring_end
+	ld (hl),a
+	inc hl
+	inc de
+	jr printstring_loopWon
+printstring_endWon	
+    
+prewaitloopEnd
+    ld bc, $ffff     ; set wait loop delay
+waitloopEnd
+    dec bc
+    ld a,b
+    or c
+    jr nz, waitloopEnd
+    jp prewaitloopEnd
+    ret ;; never gets to here
+    
 scrollARowLeft_DE_BC    ;;; de to contain the display location of first character in row, bc the last
                         ;;; also uses 
     
@@ -259,8 +384,12 @@ Display        	DEFB $76
 Variables:      
 gameName
 	DEFB	_S,_L,_I,_C,_E,_R,$ff
+youWonText    
+    DEFB	_Y,_O,_U,__,_W,_O,_N,$ff
 tempChar
     DEFB 0
+playerPosAbsolute
+    DEFB 0,0
 padding
     DEFB 0
 firstCharFirstRow
