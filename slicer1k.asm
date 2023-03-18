@@ -126,52 +126,55 @@ printstring_loop
 	jr printstring_loop
 printstring_end	
 
+   
 gameLoop
     ; scroll first line of slicer     
     ld de, 22       ; start of first row to be shifted    
     ld hl,(DF_CC)
     add hl,de
     ld (firstCharFirstRow), hl
-
-    ld de, 31       ; last of first row to be shifted    
+    
+    ld de, 31 
     ld hl,(DF_CC)
     add hl,de
-    ld (lastCharFirstRow), hl
-       
-    ld bc,8
-    ld de, 22
-scrollLeft       
-    ld hl, (firstCharFirstRow)
-    ld a, (hl)  ; store the current character that gets wrapped around to right
-    ld (tempChar), a    
-           
-    inc de    
-    ld hl,(DF_CC)
-    add hl,de	    
-    ld a, (hl)  ; store the current character to be shifted
-    dec hl
-    ld (hl), a
-
-    ld hl, (lastCharFirstRow)
-    ld a, (tempChar)  
-    ld (hl),a  ; store the current character that gets wrapped around to right
+    ld (lastCharFirstRow), hl           
+        
+    call scrollARowLeft_DE_BC
     
-    push bc
-    ld bc, $ffff
+
+    ld bc, $1fff
 waitloop1
     dec bc
     ld a,b
     or c
-    jr nz, waitloop1    
-    pop bc  
+    jr nz, waitloop1
     
-    djnz scrollLeft
-;put in a wait loop to slow it down
-; possibly better todo frames count to sync to tv
     jp gameLoop
     ret          
-                
-        
+
+scrollARowLeft_DE_BC    ;;; de to contain the display location of first character in row, bc the last
+                        ;;; also uses 
+    
+    ld hl, (firstCharFirstRow)
+    ld a, (hl)  ; store the current character that gets wrapped around to right
+    ld (tempChar), a    
+    ld bc,$0900    
+scrollLeft       
+    inc hl
+    push hl
+    ld a, (hl)  ; store the current character to be shifted left
+    dec hl
+    ld (hl), a  ; now store it!
+    pop hl
+    djnz scrollLeft
+
+    ld hl, (lastCharFirstRow)
+    ld a, (tempChar)  
+    ld (hl),a  ; store the current character that gets wrapped around to right
+    ret                
+    
+scrollARowRight_DE_BC    ;;; de to contain the display location of first character in row, bc the last
+    ret   
                 DEFB $76                        ; Newline        
 Line1End
 Line2			DEFB $00,$14
@@ -187,8 +190,8 @@ endBasic
 Display        	DEFB $76     
                 DEFB 8,9,0,0,0,0,0,0,9,8,$76 ; Line 0
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 1
-                ;DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2
-                DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 2
+                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2
+                ;DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 2  (debug)
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 3
                 DEFB 128,128,128,128,0,0,128,128,128,128,$76 ; Line 4
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 5
@@ -217,10 +220,12 @@ gameName
 	DEFB	_S,_L,_I,_C,_E,_R,$ff
 tempChar
     DEFB 0
+padding
+    DEFB 0
 firstCharFirstRow
-    DEFW $0000
+    DEFB 0,0
 lastCharFirstRow    
-    DEFW $0000
+    DEFB 0,0
 VariablesEnd:   DEFB $80
 BasicEnd: 
 #END
