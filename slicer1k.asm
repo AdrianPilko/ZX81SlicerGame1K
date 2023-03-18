@@ -1,3 +1,8 @@
+
+;;; Slicer game for zx81, can run in 1k ram
+;;; by Adrian Pilkington 2023, (byteforever)
+;;; https://youtube.com/@byteforever7829
+
 ;some #defines for compatibility with other assemblers
 #define         DEFB .byte 
 #define         DEFW .word
@@ -64,7 +69,7 @@ _Z				EQU $3F
 
 
 ;;;; this is the whole ZX81 runtime system and gets assembled and 
-;;;; loads as it would if we dropped into basic
+;;;; loads as it would if we just powered/booted into basic
 
            ORG  $4009             ; assemble to this address
                                                                 
@@ -123,32 +128,32 @@ printstring_end
 
 gameLoop
     ; scroll first line of slicer 
-    ld de, 23	
-	ld hl,(DF_CC)
-	add hl,de	
+    ld de, 23
+    ld hl,(DF_CC)
+    add hl,de	
     ld a, (hl)  ; store the current character that gets wrapped around to right
     ld (tempChar), a    
-    ld de, 24
+    inc hl
     ld bc,7
 scrollRight    
-    push de
-	ld hl,(DF_CC)
-	add hl,de	
+    push hl
     ld a, (hl)  ; store the current character to be shifted
-    dec de
-    ld hl,(DF_CC)
-	add hl,de	
+    dec hl
     ld (hl), a
-    pop de    
-    inc de
+    pop hl   
+    inc hl
     djnz scrollRight
-        
-    ld de, 32
-	ld hl,(DF_CC)
-	add hl,de	
+    
+; hl will now have been inc'd to the last column of display row   	
     ld a, (tempChar)
     ld (hl),a  ; store the current character that gets wrapped around to right
 
+;put in a wait loop to slow it down
+; possibly better todo frames count to sync to tv
+ld bc, $0fff
+wait1
+    xor a 
+    djnz wait1
     jp gameLoop
     ret          
                 
