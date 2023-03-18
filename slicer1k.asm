@@ -127,33 +127,47 @@ printstring_loop
 printstring_end	
 
 gameLoop
-    ; scroll first line of slicer 
-    ld de, 23
+    ; scroll first line of slicer     
+    ld de, 22       ; start of first row to be shifted    
     ld hl,(DF_CC)
-    add hl,de	
+    add hl,de
+    ld (firstCharFirstRow), hl
+
+    ld de, 31       ; last of first row to be shifted    
+    ld hl,(DF_CC)
+    add hl,de
+    ld (lastCharFirstRow), hl
+       
+    ld bc,8
+    ld de, 22
+scrollLeft       
+    ld hl, (firstCharFirstRow)
     ld a, (hl)  ; store the current character that gets wrapped around to right
     ld (tempChar), a    
-    inc hl
-    ld bc,7
-scrollRight    
-    push hl
+           
+    inc de    
+    ld hl,(DF_CC)
+    add hl,de	    
     ld a, (hl)  ; store the current character to be shifted
     dec hl
     ld (hl), a
-    pop hl   
-    inc hl
-    djnz scrollRight
-    
-; hl will now have been inc'd to the last column of display row   	
-    ld a, (tempChar)
-    ld (hl),a  ; store the current character that gets wrapped around to right
 
+    ld hl, (lastCharFirstRow)
+    ld a, (tempChar)  
+    ld (hl),a  ; store the current character that gets wrapped around to right
+    
+    push bc
+    ld bc, $ffff
+waitloop1
+    dec bc
+    ld a,b
+    or c
+    jr nz, waitloop1    
+    pop bc  
+    
+    djnz scrollLeft
 ;put in a wait loop to slow it down
 ; possibly better todo frames count to sync to tv
-ld bc, $0fff
-wait1
-    xor a 
-    djnz wait1
     jp gameLoop
     ret          
                 
@@ -173,7 +187,8 @@ endBasic
 Display        	DEFB $76     
                 DEFB 8,9,0,0,0,0,0,0,9,8,$76 ; Line 0
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 1
-                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2
+                ;DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2
+                DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 2
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 3
                 DEFB 128,128,128,128,0,0,128,128,128,128,$76 ; Line 4
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 5
@@ -202,6 +217,10 @@ gameName
 	DEFB	_S,_L,_I,_C,_E,_R,$ff
 tempChar
     DEFB 0
+firstCharFirstRow
+    DEFW $0000
+lastCharFirstRow    
+    DEFW $0000
 VariablesEnd:   DEFB $80
 BasicEnd: 
 #END
