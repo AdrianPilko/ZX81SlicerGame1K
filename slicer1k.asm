@@ -122,20 +122,14 @@ Line1:          DEFB $00,$0a                    ; Line 10
                 DEFW Line1End-Line1Text         ; Line 10 length
 Line1Text:      DEFB $ea                        ; REM
                                                                 
-
-	ld bc,2
+initVariables
+	ld bc,3
 	ld de,gameName
-	ld hl,(DF_CC)
-	add hl,bc	
-printstring_loop
-	ld a,(de)
-	cp $ff
-	jp z,printstring_end
-	ld (hl),a
-	inc hl
-	inc de
-	jr printstring_loop
-printstring_end	
+	call printstring
+    
+    ld bc,56
+	ld de,blankText
+	call printstring
 
     ;; some variable initialisation
     ld hl, (DF_CC)
@@ -146,8 +140,55 @@ printstring_end
     ld a, PLAYER_CHARACTER
     ld hl, (playerPosAbsolute)
     ld (hl), a
+    xor a ; zero a
+    ld (playerRowPosition), a
+    ld (playerColPosition), a
     
 gameLoop
+
+
+scrollEverything    
+
+    ; scroll first line of slicer     
+    ld de, 22       ; start of first row to be shifted left      
+    ld bc, 31       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+
+    ld de, 53       ; end of first row to be shifted right      
+    ld bc, 44       ; start of first row to be shifted right      
+    call scrollARowRight_BC_DE
+
+    ld de, 66       ; start of first row to be shifted left      
+    ld bc, 75       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 97     ; end of first row to be shifted right     
+    ld bc, 88       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
+    
+    ld de, 110       ; start of first row to be shifted left      
+    ld bc, 119       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 141     ; end of first row to be shifted right     
+    ld bc, 132       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
+    
+    ld de, 154       ; start of first row to be shifted left      
+    ld bc, 163       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 185     ; end of first row to be shifted right     
+    ld bc, 176       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
+        
+    ld de, 198       ; start of first row to be shifted left      
+    ld bc, 207       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 229     ; end of first row to be shifted right     
+    ld bc, 220       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
 
     ;; read keys
     ld a, KEYBOARD_READ_PORT_SHIFT_TO_V			
@@ -165,43 +206,56 @@ gameLoop
     bit 3, a					        ; N
     jp z, drawDown
     
-    jp drawPlayer
+    jp checkCollision
     
 drawLeft    
+    ld a, (playerColPosition) 
+    cp 0
+    jp z, afterCheckLeft
+    dec a
+    ld (playerColPosition), a
+    
     call erasePlayer
     ld hl, (playerPosAbsolute)
     dec hl
     ld (playerPosAbsolute), hl
-    call checkCollision
-    jp drawPlayer    
+afterCheckLeft    
+    jp checkCollision        
+    
 drawRight    
+    ld a, (playerColPosition) 
+    cp 9
+    jp z, afterCheckRight
+    inc a
+    ld (playerColPosition), a
+
     call erasePlayer
     ld hl, (playerPosAbsolute)
     inc hl
-    ld (playerPosAbsolute), hl
-    call checkCollision
-    jp drawPlayer    
+    ld (playerPosAbsolute), hl        
+afterCheckRight
+    jp checkCollision    
 drawDown    
     call erasePlayer
     ld hl, (playerPosAbsolute)
-    ld de, 10
+    ld de, 11
     add hl, de
     ld (playerPosAbsolute), hl
-    call checkCollision
-    jp drawPlayer    
+    ld a, (playerRowPosition)
+    inc a
+    ld (playerRowPosition), a
+    jp checkCollision
 
 checkCollision
+    scf
     ld hl, (playerPosAbsolute)
     ld a, (hl)
     cp SLICER_CHARACTER
-    jp z, hitGameOver
-
-    ld hl, (playerPosAbsolute)  ; now compare with bottom if got there then win
-    scf    ; this sets the caryy flag, if a if >= 99 caryy is reset
-    ld a, h   
-    cp 99
-    jp nc, playerWon
-    ret
+    jp z, hitGameOver 
+    ld a, (playerRowPosition)
+    cp 20
+    jp z, playerWon    
+    jp drawPlayer    
     
 erasePlayer
     ld a, SPACE_CHARACTER
@@ -213,45 +267,29 @@ drawPlayer
     ld a, PLAYER_CHARACTER
     ld hl, (playerPosAbsolute)
     ld (hl), a
-
-
     
-    
-scrollEverything    
-
-    ; scroll first line of slicer     
-    ld de, 22       ; start of first row to be shifted left      
-    ld bc, 31       ; end of first row to be shifted left      
-    call scrollARowLeft_DE_BC
-
-    ld de, 66       ; start of first row to be shifted left      
-    ld bc, 75       ; end of first row to be shifted left      
-    call scrollARowLeft_DE_BC
-
-    ld de, 53       ; end of first row to be shifted right      
-    ld bc, 44       ; start of first row to be shifted right      
-    call scrollARowRight_BC_DE
-   
-    ld de, 97     ; end of first row to be shifted right     
-    ld bc, 88       ; start of first row to be shifted right   
-    call scrollARowRight_BC_DE    
-    
-    ld bc, $1fff     ; set wait loop delay
-waitloop1
-    dec bc
-    ld a,b
-    or c
-    jr nz, waitloop1
-    
-    jp gameLoop
-    ret          
+    call waitLoop
+    jp gameLoop    
 
 hitGameOver
     ld a, PLAYER_CHARACTER      ; draw player one last time
     ld hl, (playerPosAbsolute)
     ld (hl), a
-    ret
-    
+
+	ld bc,56
+	ld de,youLostText
+    call printstring
+    call waitLoop   
+    call waitLoop
+    call waitLoop
+    call waitLoop
+    call waitLoop   
+    call waitLoop
+    call waitLoop
+    call waitLoop    
+    jp initVariables
+    ;; never gets to here
+   
 playerWon    
     ld a, PLAYER_CHARACTER      ; draw player one last time
     ld hl, (playerPosAbsolute)
@@ -259,31 +297,20 @@ playerWon
 
 	ld bc,56
 	ld de,youWonText
-	ld hl,(DF_CC)
-	add hl,bc	
-printstring_loopWon
-	ld a,(de)
-	cp $ff
-	jp z,printstring_end
-	ld (hl),a
-	inc hl
-	inc de
-	jr printstring_loopWon
-printstring_endWon	
-    
-prewaitloopEnd
-    ld bc, $ffff     ; set wait loop delay
-waitloopEnd
-    dec bc
-    ld a,b
-    or c
-    jr nz, waitloopEnd
-    jp prewaitloopEnd
-    ret ;; never gets to here
+	call printstring    
+    call waitLoop   
+    call waitLoop
+    call waitLoop
+    call waitLoop
+    call waitLoop   
+    call waitLoop
+    call waitLoop
+    call waitLoop    
+    jp initVariables
+    ;; never gets to here
     
 scrollARowLeft_DE_BC    ;;; de to contain the display location of first character in row, bc the last
                         ;;; also uses 
-    
     ld hl,(DF_CC)
     add hl,de
     ld (firstCharFirstRow), hl    
@@ -312,7 +339,6 @@ scrollLeft
     ret                
     
 scrollARowRight_BC_DE    ;;; bc to contain the display location of first character in row, de the last
-
     ld hl,(DF_CC)
     add hl,de
     ld (lastCharFirstRow), hl    
@@ -339,8 +365,32 @@ scrollRight
     ld a, (tempChar)  
     ld (hl),a  ; store the current character that gets wrapped around to right
 
-
     ret   
+    
+waitLoop
+    ld bc, $0fff     ; set wait loop delay 
+waitloop1
+    dec bc
+    ld a,b
+    or c
+    jr nz, waitloop1
+    ret
+        
+; this prints at to any offset (stored in bc) from the top of the screen Display, using string in de
+printstring
+    ld hl,Display
+    add hl,bc	
+printstring_loop
+    ld a,(de)
+    cp $ff
+    jp z,printstring_end
+    ld (hl),a
+    inc hl
+    inc de
+    jr printstring_loop
+printstring_end	
+    ret  
+    
                 DEFB $76                        ; Newline        
 Line1End
 Line2			DEFB $00,$14
@@ -356,27 +406,27 @@ endBasic
 Display        	DEFB $76     
                 DEFB 8,9,0,0,0,0,0,0,9,8,$76 ; Line 0
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 1
-                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 2                
+                DEFB 128,0,0,0,0,128,128,128,128,128,$76 ; Line 2                                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 3
-                DEFB 128,128,128,128,0,0,128,128,128,128,$76 ; Line 4
+                DEFB 128,128,128,0,0,0,128,128,128,128,$76 ; Line 4
                 ;DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 4  (debug)
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 5
-                DEFB 128,128,128,128,128,0,0,128,128,128,$76 ; Line 6
+                DEFB 128,128,128,128,0,0,0,128,128,128,$76 ; Line 6                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 7
-                DEFB 128,128,128,0,0,128,128,128,128,128,$76 ; Line 8
+                DEFB 128,128,128,0,0,128,128,128,128,128,$76 ; Line 8                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 9
-                DEFB $76 ; Line 10
-                DEFB $76 ; Line 11
-                DEFB $76 ; Line 12
-                DEFB $76 ; Line 13
-                DEFB $76 ; Line 14
-                DEFB $76 ; Line 15
-                DEFB $76 ; Line 16
-                DEFB $76 ; Line 17
-                DEFB $76 ; Line 18
-                DEFB $76 ; Line 19
-                DEFB $76 ; Line 20
-                DEFB $76 ; Line 21
+                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 10
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 11
+                DEFB 128,128,128,128,0,0,0,128,128,128,$76 ; Line 12
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 13
+                DEFB 128,128,128,128,128,128,0,0,0,128,$76; Line 14
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 15
+                DEFB 128,128,128,0,0,0,128,128,128,128,$76 ; Line 16
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 17
+                DEFB 128,128,128,128,128,0,0,128,128,128,$76 ; Line 18
+                DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 19
+                DEFB 0,0,0,128,128,128,128,128,128,128,$76 ; Line 20
+                DEFB 9,9,9,9,9,9,9,9,9,9,$76  ; Line 21
                 DEFB $76 ; Line 22
                 DEFB $76 ; Line 23
                                  
@@ -386,11 +436,17 @@ gameName
 	DEFB	_S,_L,_I,_C,_E,_R,$ff
 youWonText    
     DEFB	_Y,_O,_U,__,_W,_O,_N,$ff
+youLostText    
+    DEFB	_Y,_O,_U,__,_L,_O,_S,_T,$ff
+blankText    
+    DEFB	__,__,__,__,__,__,__,__,$ff    
 tempChar
     DEFB 0
 playerPosAbsolute
     DEFB 0,0
-padding
+playerRowPosition
+    DEFB 0
+playerColPosition
     DEFB 0
 firstCharFirstRow
     DEFB 0,0
