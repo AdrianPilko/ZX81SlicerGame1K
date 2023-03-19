@@ -8,6 +8,12 @@
 #define         EQU  .equ
 #define         ORG  .org
 
+;; note if assembling with intension of running in an emulator the timings are different
+;; at least on my PAL TV zx81, it runs slower on real zx81, so comment in this #defines to 
+;; alter delay timings
+
+;#define RUN_ON_EMULATOR
+
 
 ;;;;;#define DEBUG_NO_SCROLL
 
@@ -372,7 +378,11 @@ scrollRight
     ret   
     
 waitLoop
-    ld bc, $1acf     ; set wait loop delay 
+#ifdef RUN_ON_EMULATOR
+    ld bc, $1acf     ; set wait loop delay for emulator
+#else
+    ld bc, $0acf     ; set wait loop delay 
+#endif    
 waitloop1
     dec bc
     ld a,b
