@@ -1,6 +1,5 @@
-
 ;;; Slicer game for zx81, can run in 1k ram
-;;; by Adrian Pilkington 2023, (byteforever)
+;;; by Adrian Pilkington March 2023, (byteforever)
 ;;; https://youtube.com/@byteforever7829
 
 ;some #defines for compatibility with other assemblers
@@ -8,6 +7,9 @@
 #define         DEFW .word
 #define         EQU  .equ
 #define         ORG  .org
+
+
+;;;;;#define DEBUG_NO_SCROLL
 
 ; keyboard port for shift key to v
 #define KEYBOARD_READ_PORT_SHIFT_TO_V $FE
@@ -149,6 +151,7 @@ gameLoop
 
 scrollEverything    
 
+#ifndef DEBUG_NO_SCROLL
     ; scroll first line of slicer     
     ld de, 22       ; start of first row to be shifted left      
     ld bc, 31       ; end of first row to be shifted left      
@@ -190,6 +193,7 @@ scrollEverything
     ld bc, 220       ; start of first row to be shifted right   
     call scrollARowRight_BC_DE  
 
+#endif
     ;; read keys
     ld a, KEYBOARD_READ_PORT_SHIFT_TO_V			
     in a, (KEYBOARD_READ_PORT)					; read from io port	
@@ -368,7 +372,7 @@ scrollRight
     ret   
     
 waitLoop
-    ld bc, $0fff     ; set wait loop delay 
+    ld bc, $1acf     ; set wait loop delay 
 waitloop1
     dec bc
     ld a,b
