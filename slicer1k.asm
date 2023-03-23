@@ -24,7 +24,7 @@
 ; starting port numbner for keyboard, is same as first port for shift to v
 #define KEYBOARD_READ_PORT $FE 
 
-#define PLAYER_CHARACTER 8
+#define PLAYER_CHARACTER 187
 #define SPACE_CHARACTER 0
 #define SLICER_CHARACTER 128
 
@@ -131,13 +131,7 @@ Line1:          DEFB $00,$0a                    ; Line 10
                 DEFW Line1End-Line1Text         ; Line 10 length
 Line1Text:      DEFB $ea                        ; REM
                                                                 
-initVariables
-
-
-	ld bc,3
-	ld de,gameName
-	call printstring
-    
+initVariables  
     ld bc,56
 	ld de,blankText
 	call printstring
@@ -162,52 +156,10 @@ gameLoop
     cp 0
     jp z, initVariables
     
-
-scrollEverything    
-
-#ifndef DEBUG_NO_SCROLL
-    ; scroll first line of slicer     
-    ld de, 22       ; start of first row to be shifted left      
-    ld bc, 31       ; end of first row to be shifted left      
-    call scrollARowLeft_DE_BC
-
-    ld de, 53       ; end of first row to be shifted right      
-    ld bc, 44       ; start of first row to be shifted right      
-    call scrollARowRight_BC_DE
-
-    ld de, 66       ; start of first row to be shifted left      
-    ld bc, 75       ; end of first row to be shifted left      
-    call scrollARowLeft_DE_BC
+    call erasePlayer
     
-    ld de, 97     ; end of first row to be shifted right     
-    ld bc, 88       ; start of first row to be shifted right   
-    call scrollARowRight_BC_DE  
+    call scrollEverything    
     
-    ld de, 110       ; start of first row to be shifted left      
-    ld bc, 119       ; end of first row to be shifted left      
-    call scrollARowLeft_DE_BC
-    
-    ld de, 141     ; end of first row to be shifted right     
-    ld bc, 132       ; start of first row to be shifted right   
-    call scrollARowRight_BC_DE  
-    
-    ld de, 154       ; start of first row to be shifted left      
-    ld bc, 163       ; end of first row to be shifted left      
-    call scrollARowLeft_DE_BC
-    
-    ld de, 185     ; end of first row to be shifted right     
-    ld bc, 176       ; start of first row to be shifted right   
-    call scrollARowRight_BC_DE  
-        
-    ld de, 198       ; start of first row to be shifted left      
-    ld bc, 207       ; end of first row to be shifted left      
-    call scrollARowLeft_DE_BC
-    
-    ld de, 229     ; end of first row to be shifted right     
-    ld bc, 220       ; start of first row to be shifted right   
-    call scrollARowRight_BC_DE  
-
-#endif
     ;; read keys
     ld a, KEYBOARD_READ_PORT_SHIFT_TO_V			
     in a, (KEYBOARD_READ_PORT)					; read from io port	
@@ -233,7 +185,7 @@ drawLeft
     dec a
     ld (playerColPosition), a
     
-    call erasePlayer
+    ;call erasePlayer
     ld hl, (playerPosAbsolute)
     dec hl
     ld (playerPosAbsolute), hl
@@ -247,14 +199,14 @@ drawRight
     inc a
     ld (playerColPosition), a
 
-    call erasePlayer
+    ;call erasePlayer
     ld hl, (playerPosAbsolute)
     inc hl
     ld (playerPosAbsolute), hl        
 afterCheckRight
     jp checkCollision    
 drawDown    
-    call erasePlayer
+    ;call erasePlayer
     ld hl, (playerPosAbsolute)
     ld de, 11
     add hl, de
@@ -264,11 +216,13 @@ drawDown
     ld (playerRowPosition), a
     jp checkCollision
 
-checkCollision
+checkCollision    
     scf
     ld hl, (playerPosAbsolute)
     ld a, (hl)
     cp SLICER_CHARACTER
+    jp z, hitGameOver 
+    cp PLAYER_CHARACTER
     jp z, hitGameOver 
     ld a, (playerRowPosition)
     cp 20
@@ -278,15 +232,16 @@ checkCollision
 erasePlayer
     ld a, SPACE_CHARACTER
     ld hl, (playerPosAbsolute)
-    ld (hl), a
+    ld (hl), a    
     ret
 
-drawPlayer
+drawPlayer    
     ld a, PLAYER_CHARACTER
     ld hl, (playerPosAbsolute)
     ld (hl), a
     
     call waitLoop
+    
     jp gameLoop    
 
 hitGameOver
@@ -390,10 +345,60 @@ scrollRight
     ld (hl),a  ; store the current character that gets wrapped around to right
 
     ret   
+
+
+
+scrollEverything    
+
+#ifndef DEBUG_NO_SCROLL
+    ; scroll first line of slicer     
+    ld de, 22       ; start of first row to be shifted left      
+    ld bc, 31       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+
+    ld de, 53       ; end of first row to be shifted right      
+    ld bc, 44       ; start of first row to be shifted right      
+    call scrollARowRight_BC_DE
+
+    ld de, 66       ; start of first row to be shifted left      
+    ld bc, 75       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 97     ; end of first row to be shifted right     
+    ld bc, 88       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
+    
+    ld de, 110       ; start of first row to be shifted left      
+    ld bc, 119       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 141     ; end of first row to be shifted right     
+    ld bc, 132       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
+    
+    ld de, 154       ; start of first row to be shifted left      
+    ld bc, 163       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 185     ; end of first row to be shifted right     
+    ld bc, 176       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
+        
+    ld de, 198       ; start of first row to be shifted left      
+    ld bc, 207       ; end of first row to be shifted left      
+    call scrollARowLeft_DE_BC
+    
+    ld de, 229     ; end of first row to be shifted right     
+    ld bc, 220       ; start of first row to be shifted right   
+    call scrollARowRight_BC_DE  
+
+#endif
+    ret
+
     
 waitLoop
 #ifdef RUN_ON_EMULATOR
-    ld bc, $1acf     ; set wait loop delay for emulator
+    ld bc, $1ac1     ; set wait loop delay for emulator
 #else
     ld bc, $0acf     ; set wait loop delay 
 #endif    
@@ -432,11 +437,12 @@ Line2End
 endBasic
                                                                 
 Display        	DEFB $76     
-                DEFB 8,9,0,0,0,0,0,0,9,8,$76 ; Line 0
+                DEFB 8,9,_S,_L,_I,_C,_E,_R,9,8,$76 ; Line 0
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 1
                 DEFB 128,0,0,0,0,128,128,128,128,128,$76 ; Line 2                                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 3
                 DEFB 128,128,128,0,0,0,128,128,128,128,$76 ; Line 4
+                ;DEFB 128,128,128,128,128,0,128,128,128,128,$76 ; Line 4 --- this would be too hard a gap of one
                 ;DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 4  (debug)
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 5
                 DEFB 128,128,128,128,0,0,0,128,128,128,$76 ; Line 6                
@@ -460,8 +466,6 @@ Display        	DEFB $76
                                  
                                                                 
 Variables:      
-gameName
-	DEFB	_S,_L,_I,_C,_E,_R,$ff
 youWonText    
     DEFB	_Y,_O,_U,__,_W,_O,_N,$ff
 youLostText    
