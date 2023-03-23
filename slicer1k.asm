@@ -12,7 +12,7 @@
 ;; at least on my PAL TV zx81, it runs slower on real zx81, so comment in this #defines to 
 ;; alter delay timings
 
-;#define RUN_ON_EMULATOR
+#define RUN_ON_EMULATOR
 
 
 ;;;;;#define DEBUG_NO_SCROLL
@@ -122,8 +122,9 @@ COORDS:         DEFW 0
 PR_CC:          DEFB $bc
 S_POSN:         DEFW $1821
 CDFLAG:         DEFB $40
-PRBUFF:         DEFB 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,$76 ; 32 Spaces + Newline
-MEMBOT:         DEFB 0,0,0,0,0,0,0,0,0,0,$84,$20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 30 zeros
+;PRBUFF:         DEFB 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,$76 ; 32 Spaces + Newline
+;MEMBOT:         DEFB 0,0,0,0,0,0,0,0,0,0,$84,$20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 30 zeros
+MEMBOT:         DEFB 0,0 ;  zeros
 UNUNSED2:       DEFW 0
 
 Line1:          DEFB $00,$0a                    ; Line 10
@@ -131,6 +132,8 @@ Line1:          DEFB $00,$0a                    ; Line 10
 Line1Text:      DEFB $ea                        ; REM
                                                                 
 initVariables
+
+
 	ld bc,3
 	ld de,gameName
 	call printstring
@@ -151,9 +154,14 @@ initVariables
     xor a ; zero a
     ld (playerRowPosition), a
     ld (playerColPosition), a
+    ld a, 1
+    ld (firstTime), a
     
 gameLoop
-
+    ld a, (firstTime)
+    cp 0
+    jp z, initVariables
+    
 
 scrollEverything    
 
@@ -289,14 +297,17 @@ hitGameOver
 	ld bc,56
 	ld de,youLostText
     call printstring
+
+#ifdef RUN_ON_EMULATOR
+    ld e, 20 
+#else
+    ld e, 15 
+#endif        
+    
+waitPlayerOver           
     call waitLoop   
-    call waitLoop
-    call waitLoop
-    call waitLoop
-    call waitLoop   
-    call waitLoop
-    call waitLoop
-    call waitLoop    
+    dec e
+    jp nz, waitPlayerOver
     jp initVariables
     ;; never gets to here
    
@@ -307,15 +318,18 @@ playerWon
 
 	ld bc,56
 	ld de,youWonText
-	call printstring    
+	call printstring 
+
+#ifdef RUN_ON_EMULATOR
+    ld e, 20 
+#else
+    ld e, 15 
+#endif   
+waitPlayerWon     
     call waitLoop   
-    call waitLoop
-    call waitLoop
-    call waitLoop
-    call waitLoop   
-    call waitLoop
-    call waitLoop
-    call waitLoop    
+    dec e
+    jp nz, waitPlayerWon
+    
     jp initVariables
     ;; never gets to here
     
@@ -466,6 +480,8 @@ firstCharFirstRow
     DEFB 0,0
 lastCharFirstRow    
     DEFB 0,0
+firstTime
+    DEFB 0
 VariablesEnd:   DEFB $80
 BasicEnd: 
 #END
