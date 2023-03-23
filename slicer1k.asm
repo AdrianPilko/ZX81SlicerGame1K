@@ -12,7 +12,7 @@
 ;; at least on my PAL TV zx81, it runs slower on real zx81, so comment in this #defines to 
 ;; alter delay timings
 
-#define RUN_ON_EMULATOR
+;#define RUN_ON_EMULATOR
 
 
 ;;;;;#define DEBUG_NO_SCROLL
