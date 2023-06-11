@@ -12,9 +12,6 @@
 ;; at least on my PAL TV zx81, it runs slower on real zx81, so comment in this #defines to 
 ;; alter delay timings
 
-;#define RUN_ON_EMULATOR
-
-
 ;;;;;#define DEBUG_NO_SCROLL
 
 ; keyboard port for shift key to v
@@ -86,7 +83,7 @@ _X				EQU $3D
 _Y				EQU $3E
 _Z				EQU $3F
 
-
+VSYNCLOOP       EQU      4
 ;;;; this is the whole ZX81 runtime system and gets assembled and 
 ;;;; loads as it would if we just powered/booted into basic
 
@@ -130,6 +127,8 @@ UNUNSED2:       DEFW 0
 Line1:          DEFB $00,$0a                    ; Line 10
                 DEFW Line1End-Line1Text         ; Line 10 length
 Line1Text:      DEFB $ea                        ; REM
+
+
                                                                 
 initVariables  
     ld bc,56
@@ -155,6 +154,11 @@ gameLoop
     ld a, (firstTime)
     cp 0
     jp z, initVariables
+    
+	ld b,VSYNCLOOP
+waitForTVSync	
+	call vsync
+	djnz waitForTVSync    
     
     call erasePlayer
     
@@ -239,9 +243,7 @@ drawPlayer
     ld a, PLAYER_CHARACTER
     ld hl, (playerPosAbsolute)
     ld (hl), a
-    
-    call waitLoop
-    
+      
     jp gameLoop    
 
 hitGameOver
@@ -253,11 +255,7 @@ hitGameOver
 	ld de,youLostText
     call printstring
 
-#ifdef RUN_ON_EMULATOR
     ld e, 20 
-#else
-    ld e, 15 
-#endif        
     
 waitPlayerOver           
     call waitLoop   
@@ -275,11 +273,7 @@ playerWon
 	ld de,youWonText
 	call printstring 
 
-#ifdef RUN_ON_EMULATOR
     ld e, 20 
-#else
-    ld e, 15 
-#endif   
 waitPlayerWon     
     call waitLoop   
     dec e
@@ -397,11 +391,7 @@ scrollEverything
 
     
 waitLoop
-#ifdef RUN_ON_EMULATOR
-    ld bc, $1ac1     ; set wait loop delay for emulator
-#else
     ld bc, $0acf     ; set wait loop delay 
-#endif    
 waitloop1
     dec bc
     ld a,b
@@ -423,6 +413,17 @@ printstring_loop
     jr printstring_loop
 printstring_end	
     ret  
+
+;check if TV synchro (FRAMES) happend
+vsync	
+	ld a,(FRAMES)
+	ld c,a
+sync
+	ld a,(FRAMES)
+	cp c
+	jr z,sync
+	ret
+    
     
                 DEFB $76                        ; Newline        
 Line1End
@@ -441,28 +442,28 @@ Display        	DEFB $76
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 1
                 DEFB 128,0,0,0,0,128,128,128,128,128,$76 ; Line 2                                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 3
-                DEFB 128,128,128,0,0,0,128,128,128,128,$76 ; Line 4
+                DEFB 128,128,128,0,0,0,0,128,128,128,$76 ; Line 4
                 ;DEFB 128,128,128,128,128,0,128,128,128,128,$76 ; Line 4 --- this would be too hard a gap of one
                 ;DEFB 28,29,30,31,32,33,34,35,36,37,$76 ; Line 4  (debug)
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 5
-                DEFB 128,128,128,128,0,0,0,128,128,128,$76 ; Line 6                
+                DEFB 128,128,128,0,0,0,0,128,128,128,$76 ; Line 6                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 7
-                DEFB 128,128,128,0,0,128,128,128,128,128,$76 ; Line 8                
+                DEFB 128,128,128,0,0,0,128,128,128,128,$76 ; Line 8                
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 9
-                DEFB 128,0,0,128,128,128,128,128,128,128,$76 ; Line 10
+                DEFB 128,0,0,0,128,128,128,128,128,128,$76 ; Line 10
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76 ; Line 11
                 DEFB 128,128,128,128,0,0,0,128,128,128,$76 ; Line 12
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 13
-                DEFB 128,128,128,128,128,128,0,0,0,128,$76; Line 14
+                DEFB 128,128,128,128,128,128,128,0,0,128,$76; Line 14
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 15
-                DEFB 128,128,128,0,0,0,128,128,128,128,$76 ; Line 16
+                DEFB 128,128,128,0,0,128,128,128,128,128,$76 ; Line 16
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 17
                 DEFB 128,128,128,128,128,0,0,128,128,128,$76 ; Line 18
                 DEFB 0,0,0,0,0,0,0,0,0,0,$76  ; Line 19
-                DEFB 0,0,0,128,128,128,128,128,128,128,$76 ; Line 20
+                DEFB 0,128,128,128,128,128,128,128,128,128,$76 ; Line 20
                 DEFB 9,9,9,9,9,9,9,9,9,9,$76  ; Line 21
-                DEFB $76 ; Line 22
-                DEFB $76 ; Line 23
+                DEFB _R,_E,_A,_C,_H,0,_H,_E,_R,_E,$76 ; Line 22
+                DEFB _B,_Y,0,_A,27,_P,_I,_L,_K,_O,$76 ; Line 23
                                  
                                                                 
 Variables:      
